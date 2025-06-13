@@ -1,0 +1,59 @@
+# Core FastAPI dependencies
+fastapi>=0.104.0
+uvicorn[standard]>=0.24.0
+python-multipart>=0.0.6
+
+# Database
+sqlalchemy>=2.0.0
+psycopg2-binary>=2.9.0
+alembic>=1.12.0
+
+# Background tasks
+celery>=5.3.0
+redis>=5.0.0
+
+# File processing and OCR
+python-docx>=1.1.0
+PyPDF2>=3.0.0
+openpyxl>=3.1.0
+pytesseract>=0.3.10
+Pillow>=10.0.0
+
+# File watching
+watchdog>=3.0.0
+
+# HTTP requests
+httpx>=0.25.0
+aiofiles>=23.2.0
+requests>=2.31.0
+
+# Validation and serialization
+pydantic>=2.5.0
+pydantic-settings>=2.1.0
+
+# Email
+aiosmtplib>=3.0.0
+email-validator>=2.1.0
+
+# Security and JWT
+python-jose[cryptography]>=3.3.0
+passlib[bcrypt]>=1.7.4
+python-multipart>=0.0.6
+
+# Utilities and environment
+python-dotenv>=1.0.0
+pytz>=2023.3
+
+# Logging and monitoring
+structlog>=23.2.0
+
+# Development and testing
+pytest>=7.4.0
+pytest-asyncio>=0.21.0
+black>=23.0.0
+flake8>=6.0.0
+
+# Additional utilities that might be needed
+click>=8.1.0
+jinja2>=3.1.0
+markupsafe>=2.1.0

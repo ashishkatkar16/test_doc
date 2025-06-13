@@ -1,0 +1,128 @@
+version: '3.8'
+
+services:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_DB: docuprocess
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      # Remove any conflicting variables
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d docuprocess" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mcp-server:
+    build: .
+    command: python app/mcp_server.py
+    volumes:
+      - ./robot_folder:/app/robot_folder
+      - ./db:/app/db
+    depends_on:
+      - redis
+    environment:
+      - DATABASE_URL=sqlite:///./db/documents.db
+      - ROBOT_FOLDER_PATH=./robot_folder
+  main_app:
+    build: .
+    working_dir: /app
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuprocess
+    volumes:
+      - .:/app
+    command: >
+      sh -c "
+      echo 'Waiting for database to be ready...' &&
+      sleep 5 &&
+      uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+      "
+
+  analysis_service:
+    build: .
+    working_dir: /app
+    ports:
+      - "8001:8001"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuprocess
+    volumes:
+      - .:/app
+    command: >
+      sh -c "
+      echo 'Waiting for database to be ready...' &&
+      sleep 5 &&
+      uvicorn services.analysis_service:app --host 0.0.0.0 --port 8001 --reload
+      "
+
+  email_service:
+    build: .
+    working_dir: /app
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuprocess
+    volumes:
+      - .:/app
+    command: >
+      sh -c "
+      echo 'Waiting for database to be ready...' &&
+      sleep 5 &&
+      uvicorn services.email_service:app --host 0.0.0.0 --port 8002 --reload
+      "
+
+  rpa_service:
+    build: .
+    working_dir: /app
+    ports:
+      - "8003:8003"
+    volumes:
+      - .:/app
+    command: >
+      uvicorn services.rpa_service:app
+      --host 0.0.0.0 --port 8003
+      --reload
+
+  celery_worker:
+    build: .
+    working_dir: /app
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    environment:
+      - DATABASE_URL=postgresql://postgres:postgres@postgres:5432/docuprocess
+    volumes:
+      - .:/app
+    command: >
+      sh -c "
+      echo 'Waiting for database to be ready...' &&
+      sleep 10 &&
+      celery -A workers.tasks.celery_app worker --loglevel=info
+      "
+
+volumes:
+  postgres_data:
